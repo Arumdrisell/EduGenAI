@@ -1,16 +1,38 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Question } from "../types";
+import CryptoJS from "crypto-js";
 
 const LOCAL_STORAGE_KEY = 'edu_gen_api_key';
+const ENCRYPTION_SECRET = 'EduGen_Client_Secret_2024_Secure'; // Client-side obfuscation key
 
-// Helper to manage API Key
+// Helper to manage API Key with Encryption
 export const getStoredApiKey = (): string | null => {
-  return localStorage.getItem(LOCAL_STORAGE_KEY) || process.env.API_KEY || null;
+  const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+  
+  if (stored) {
+    try {
+      // Attempt to decrypt the stored key
+      const bytes = CryptoJS.AES.decrypt(stored, ENCRYPTION_SECRET);
+      const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+      
+      // If decryption yields a string, return it.
+      if (decrypted) return decrypted;
+    } catch (e) {
+      console.warn("API Key decryption failed (possibly old format). Clearing storage.");
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+  }
+  
+  // Fallback to environment variable if available
+  return process.env.API_KEY || null;
 };
 
 export const saveStoredApiKey = (key: string) => {
-  localStorage.setItem(LOCAL_STORAGE_KEY, key);
+  if (!key) return;
+  // Encrypt the key before saving to localStorage
+  const encrypted = CryptoJS.AES.encrypt(key, ENCRYPTION_SECRET).toString();
+  localStorage.setItem(LOCAL_STORAGE_KEY, encrypted);
 };
 
 export const removeStoredApiKey = () => {
