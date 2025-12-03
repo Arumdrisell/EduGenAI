@@ -7,6 +7,7 @@ import { CURRICULUM_DATA } from '../constants';
 
 const GeneratorPage: React.FC = () => {
   const [grade, setGrade] = useState('3학년');
+  const [semester, setSemester] = useState('1학기'); // Added semester state
   const [subject, setSubject] = useState<string>(Subject.MATH);
   const [unit, setUnit] = useState('');
   const [difficulty, setDifficulty] = useState<string>(Difficulty.MEDIUM);
@@ -20,7 +21,7 @@ const GeneratorPage: React.FC = () => {
   const [examData, setExamData] = useState<GeneratedExam | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Available units based on current grade and subject
+  // Available units based on current grade, semester and subject
   const [availableUnits, setAvailableUnits] = useState<string[]>([]);
 
   // Study Mode States
@@ -39,9 +40,10 @@ const GeneratorPage: React.FC = () => {
     }
   }, []);
 
-  // Update available units when grade or subject changes
+  // Update available units when grade, semester or subject changes
   useEffect(() => {
-    const units = CURRICULUM_DATA[grade]?.[subject] || [];
+    // Access nested data: Grade -> Semester -> Subject
+    const units = CURRICULUM_DATA[grade]?.[semester]?.[subject] || [];
     setAvailableUnits(units);
     
     // Set default unit to the first one if available
@@ -50,7 +52,7 @@ const GeneratorPage: React.FC = () => {
     } else {
       setUnit('');
     }
-  }, [grade, subject]);
+  }, [grade, semester, subject]);
 
   const handleSaveKey = () => {
     if (apiKey.trim()) {
@@ -80,9 +82,10 @@ const GeneratorPage: React.FC = () => {
     setScore(0);
 
     try {
-      const questions = await generateQuestionsAI(grade, subject, unit, difficulty);
+      const questions = await generateQuestionsAI(grade, semester, subject, unit, difficulty);
       setExamData({
         grade,
+        semester,
         subject,
         unit,
         questions
@@ -124,12 +127,12 @@ const GeneratorPage: React.FC = () => {
     window.print();
   };
 
-  const handleSpeak = (text: string, lang: string = 'ko-KR') => {
+  const handleSpeak = (text: string, lang: string = 'en-US') => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel(); // Stop any current speech
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = lang === 'en-US' ? 0.8 : 0.9; // Slower for English
+      utterance.rate = 0.8; // Slower for English learning
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -201,17 +204,30 @@ const GeneratorPage: React.FC = () => {
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">학년</label>
-                  <select 
-                    value={grade} 
-                    onChange={(e) => setGrade(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map(g => (
-                      <option key={g} value={`${g}학년`}>{g}학년</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                        <select 
+                            value={grade} 
+                            onChange={(e) => setGrade(e.target.value)}
+                            className="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                        >
+                            {[1, 2, 3, 4, 5, 6].map(g => (
+                            <option key={g} value={`${g}학년`}>{g}학년</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">학기</label>
+                        <select 
+                            value={semester} 
+                            onChange={(e) => setSemester(e.target.value)}
+                            className="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                        >
+                            <option value="1학기">1학기</option>
+                            <option value="2학기">2학기</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -247,7 +263,7 @@ const GeneratorPage: React.FC = () => {
                     </select>
                   ) : (
                     <div className="p-3 bg-gray-100 text-gray-500 rounded-lg text-sm text-center">
-                      선택 가능한 단원이 없습니다.
+                      해당 학기의 단원 정보가 없습니다.
                     </div>
                   )}
                 </div>
@@ -319,7 +335,7 @@ const GeneratorPage: React.FC = () => {
                   <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">AI가 문제를 출제하고 있습니다</h3>
-                <p className="text-gray-500">교과서 {grade} {subject} '{unit}' 분석 중...</p>
+                <p className="text-gray-500">교과서 {grade} {semester} {subject} '{unit}' 분석 중...</p>
               </div>
             )}
 
@@ -328,7 +344,7 @@ const GeneratorPage: React.FC = () => {
                 {/* Exam Header */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center print:border-none print:shadow-none print:p-0 print:mb-8">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 print:text-2xl">{examData.grade} {examData.subject} 평가</h2>
+                    <h2 className="text-xl font-bold text-gray-900 print:text-2xl">{examData.grade} {examData.semester} {examData.subject} 평가</h2>
                     <p className="text-gray-500 text-sm print:text-gray-600">주제: {examData.unit} | 난이도: {difficulty}</p>
                   </div>
                   <button 
@@ -361,11 +377,6 @@ const GeneratorPage: React.FC = () => {
                   const isWrong = isSubmitted && !isCorrect;
                   const isUserSelected = (opt: string) => userAnswers[q.id] === opt;
                   
-                  // Decide what text to speak: if English listening text exists, speak that in English.
-                  // Otherwise, speak the question text in Korean.
-                  const speakText = q.listeningText || q.questionText;
-                  const speakLang = q.listeningText ? 'en-US' : 'ko-KR';
-
                   return (
                     <div key={q.id} className={`bg-white p-6 rounded-2xl shadow-sm border ${isWrong ? 'border-red-200 bg-red-50/10' : 'border-gray-100'} print:shadow-none print:border-gray-300 print:break-inside-avoid`}>
                       <div className="flex items-start gap-3 mb-4">
@@ -384,20 +395,23 @@ const GeneratorPage: React.FC = () => {
                                 <h3 className="text-lg font-medium text-gray-900 leading-relaxed pt-0.5">
                                     {q.questionText}
                                 </h3>
-                                <button 
-                                    onClick={() => handleSpeak(speakText, speakLang)}
-                                    className="text-gray-400 hover:text-primary transition p-1 flex-shrink-0 print:hidden"
-                                    title={q.listeningText ? "영어 지문 듣기" : "문제 듣기"}
-                                >
-                                    <Volume2 size={20} />
-                                </button>
+                                {/* Only show speaker for English subject listening box below, removed from here for Korean */}
                             </div>
                             
                             {/* Listening Text Box for English */}
                             {q.listeningText && (
-                              <div className="mt-4 mb-2 p-4 bg-blue-50 border border-blue-100 rounded-xl relative">
-                                <span className="absolute -top-2 left-4 bg-white text-blue-500 text-xs font-bold px-2 py-0.5 rounded border border-blue-100">Listen</span>
-                                <p className="text-lg text-gray-800 font-medium whitespace-pre-line">{q.listeningText}</p>
+                              <div className="mt-4 mb-2 p-4 bg-blue-50 border border-blue-100 rounded-xl relative group">
+                                <div className="flex justify-between items-start gap-2">
+                                    <span className="absolute -top-2 left-4 bg-white text-blue-500 text-xs font-bold px-2 py-0.5 rounded border border-blue-100">Listen</span>
+                                    <p className="text-lg text-gray-800 font-medium whitespace-pre-line leading-relaxed">{q.listeningText}</p>
+                                    <button 
+                                        onClick={() => handleSpeak(q.listeningText || '', 'en-US')}
+                                        className="text-blue-500 hover:text-blue-700 p-2 bg-white rounded-full shadow-sm border border-blue-100 transition flex-shrink-0 print:hidden"
+                                        title="영어 지문 듣기"
+                                    >
+                                        <Volume2 size={20} />
+                                    </button>
+                                </div>
                               </div>
                             )}
 
@@ -443,7 +457,7 @@ const GeneratorPage: React.FC = () => {
                               {opt}
                             </span>
 
-                            {/* Option Listen Button (Only for English) */}
+                            {/* Option Listen Button (Only for English Subject) */}
                             {examData.subject === '영어' && (
                                 <button
                                     onClick={(e) => {
@@ -511,8 +525,14 @@ const GeneratorPage: React.FC = () => {
                                 <div className="w-full">
                                     <h3 className="text-lg font-bold text-gray-900 mb-2">{q.questionText}</h3>
                                     {q.listeningText && (
-                                        <div className="p-3 bg-white/50 border border-blue-100 rounded-lg mb-4 text-gray-700 italic">
-                                            "{q.listeningText}"
+                                        <div className="p-3 bg-white/50 border border-blue-100 rounded-lg mb-4 text-gray-700 italic flex justify-between items-start">
+                                            <span>"{q.listeningText}"</span>
+                                            <button 
+                                                onClick={() => handleSpeak(q.listeningText || '', 'en-US')}
+                                                className="text-blue-500 p-1 bg-white rounded-full border border-blue-100 print:hidden"
+                                            >
+                                                <Volume2 size={16} />
+                                            </button>
                                         </div>
                                     )}
                                     {q.svgImage && <div dangerouslySetInnerHTML={{ __html: q.svgImage }} className="w-24 h-24 flex-shrink-0" />}

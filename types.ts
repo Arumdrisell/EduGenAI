@@ -30,6 +30,7 @@ export interface Question {
 
 export interface GeneratedExam {
   grade: string;
+  semester: string; // Added semester field
   subject: string;
   unit: string;
   questions: Question[];

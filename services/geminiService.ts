@@ -75,6 +75,7 @@ const questionSchema: Schema = {
 
 export const generateQuestionsAI = async (
   grade: string,
+  semester: string, // Added semester
   subject: string,
   unit: string,
   difficulty: string
@@ -92,6 +93,7 @@ export const generateQuestionsAI = async (
     const prompt = `
       Create 5 multiple-choice questions for South Korean Elementary School level.
       Grade: ${grade}
+      Semester: ${semester}
       Subject: ${subject}
       Topic/Unit: ${unit}
       Difficulty: ${difficulty}
