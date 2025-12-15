@@ -1,0 +1,5 @@
+{
+  "name": "Mom's AI Teacher (엄마쌤 AI)",
+  "description": "An AI-powered personalized exam generator for elementary students, featuring curriculum-based questions, automatic grading, and review notes.",
+  "requestFramePermissions": []
+}
